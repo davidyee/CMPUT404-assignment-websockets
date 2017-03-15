@@ -44,6 +44,53 @@ debug("Test");
 
 world = {};
 
+function getRandomColour(x) {
+    return ['red','orange','yellow','green','blue','purple'][x%6];
+}
+
+// Star drawing code based on code written by
+// markE (http://stackoverflow.com/users/411591/marke) at
+// http://stackoverflow.com/a/25840319/2557554 and licensed under
+// CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+function drawStar(context,entity) {
+    with(context) {
+        var innerRadius = 3;
+        var outerRadius = 6;
+        var spikes = 10;
+
+        var rot=Math.PI/2*3;
+        var step=Math.PI/spikes;
+
+        var x = entity["x"];
+        var y = entity["y"];
+
+        var cx = entity["x"];
+        var cy = entity["y"];
+
+        beginPath();
+        moveTo(cx,cy-outerRadius);
+        for(i=0;i<spikes;i++){
+            x=cx+Math.cos(rot)*outerRadius;
+            y=cy+Math.sin(rot)*outerRadius;
+            lineTo(x,y);
+            rot+=step;
+
+            x=cx+Math.cos(rot)*innerRadius;
+            y=cy+Math.sin(rot)*innerRadius;
+            lineTo(x,y);
+            rot+=step
+        }
+
+        lineTo(cx,cy-outerRadius);
+        closePath();
+        lineWidth=5;
+        strokeStyle=getRandomColour(cx);
+        stroke();
+        fillStyle=getRandomColour(cx);
+        fill();
+    }
+}
+
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
@@ -54,7 +101,32 @@ function drawCircle(context,entity) {
         //moveTo(x,y);
         fillStyle = entity["colour"];
         strokeStyle = fillStyle;
-        arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
+
+        if(typeof entity["radius"] === "undefined") {
+            arc(x, y, 50, 0, 2.0 * Math.PI, false);
+        } else { // Draw a poke-ball
+            // Draw the large circle and then the little inner circle
+            arc(x, y, entity["radius"], 0, 2.0 * Math.PI, false);
+            arc(x, y, 10, 0, 2.0 * Math.PI, false);
+
+            // Draw the line from the inner circle to the outer circle
+            // Follows the general circle equation to determine the point
+            //
+            // x = center.x + radius * cos(rad angle)
+            // y = center.y + radius * sin(rad angle)
+            //
+            // Where radian angle is between 0 and 2pi, starting from the
+            // 3 o'clock position on a circle.
+            //
+            // Idea based on description by Philipp Jahoda
+            // (http://stackoverflow.com/users/1590502/philipp-jahoda) at
+            // http://stackoverflow.com/a/25929952/2557554 and licensed under
+            // CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+            moveTo(x + 10 * Math.cos(Math.PI), y + 10 * Math.sin(Math.PI));
+            lineTo(x + entity["radius"] * Math.cos(Math.PI),
+                   y + entity["radius"] * Math.sin(Math.PI));
+        }
+
         stroke();                                
     }
 }
@@ -83,7 +155,12 @@ function renderFrame() {
     clearFrame();
     for (var key in world) {
         var entity = world[key];
-        drawCircle(context,prepEntity(entity));
+
+        if(entity.hasOwnProperty('radius') && entity['radius'] <= 25) {
+            drawStar(context,prepEntity(entity));
+        } else {
+            drawCircle(context, prepEntity(entity));
+        }
     }
 }
 
@@ -122,10 +199,20 @@ function getPosition(e) {
 }
 
 function addEntity(entity, data) {
+    addEntityLocally(entity, data)
+
+    //XXX: Send a XHTML Request that updates the entity you just modified!
+    var obj = {};
+    obj[entity] = data;
+
+    socket.send(JSON.stringify(obj));
+}
+
+function addEntityLocally(entity, data) {
     world[entity] = data;
     drawNextFrame(); // (but should we?)
-    //XXX: Send a XHTML Request that updates the entity you just modified!
 }
+
 var counter = 0;
 function addEntityWithoutName(data) {
     var name = "X"+(counter++)%100;
@@ -231,15 +318,15 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':getRandomColour(x)});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':getRandomColour(x)});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
+    addEntityWithoutName({'x':x,'y':y,'colour':'white',
                           'radius':10});
 });
 
@@ -254,14 +341,19 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        update();
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
     };
-    socket.onmessage = function(msg) {  
+    socket.onmessage = function(msg) {
         try {
             debug("WebSocket Recv:" + msg.data);
-            //XXX: TODO What are you going to do here?            
+            //XXX: TODO What are you going to do here?
+            var message = JSON.parse(msg.data)
+            for(var key in message) {
+                addEntityLocally(key, message[key])
+            }
         } catch (e) {
             alert("socket on message: " + e);
         }

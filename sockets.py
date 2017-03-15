@@ -14,7 +14,7 @@
 # limitations under the License.
 #
 import flask
-from flask import Flask, request
+from flask import Flask, url_for, redirect, request, jsonify
 from flask_sockets import Sockets
 import gevent
 from gevent import queue
@@ -59,29 +59,89 @@ class World:
     def world(self):
         return self.space
 
-myWorld = World()        
+myWorld = World()
+
+
+# Represents a connected client
+# Stores data to the client in a queue
+class Client:
+    def __init__(self):
+        self.queue = queue.Queue()
+
+    def put(self, item):
+        self.queue.put(item)
+
+    def get(self):
+        return self.queue.get()
+
+clients = list()
 
 def set_listener( entity, data ):
     ''' do something with the update ! '''
+    obj = dict()
+    obj[entity] = data
+
+    # Queue the changed object in each client
+    for client in clients:
+        client.put(json.dumps(obj))
+
 
 myWorld.add_set_listener( set_listener )
         
 @app.route('/')
 def hello():
     '''Return something coherent here.. perhaps redirect to /static/index.html '''
-    return None
+    return redirect(url_for('static', filename='index.html'))
 
 def read_ws(ws,client):
     '''A greenlet function that reads from the websocket and updates the world'''
     # XXX: TODO IMPLEMENT ME
-    return None
+    while not ws.closed:
+        # app.logger.debug('Waiting to receive message...')
+        message = ws.receive()
+        if message is not None:
+            data = json.loads(message)
+            # app.logger.debug('Received: ' + str(data))
+
+            # Update the world for each item sent
+            for item in data:
+                myWorld.set(item, data[item])
+    # app.logger.debug('Done reading!')
 
 @sockets.route('/subscribe')
 def subscribe_socket(ws):
     '''Fufill the websocket URL of /subscribe, every update notify the
        websocket and read updates from the websocket '''
     # XXX: TODO IMPLEMENT ME
-    return None
+
+    # Create the client and spawn a new Greenlet that schedules the read_ws
+    # method with the websocket and client as parameters
+    client = Client()
+
+    # Keep track of the client
+    clients.append(client)
+
+    # Initialize the Greenlet
+    ge = gevent.spawn(read_ws, ws, client)
+
+    try:
+        # Send the world as we know it currently
+        ws.send(json.dumps(myWorld.world()))
+
+        # Then send only updates as we receive them
+        # This loop continues until the client times out or disconnects
+        while True:
+            message = client.get()
+            if message is not None:
+                ws.send(message)
+                # app.logger.debug('Sending on socket: ' + message)
+    except Exception as e:
+        if e is not queue.Empty:
+            app.logger.error(e)
+    finally:
+        clients.remove(client)
+        ge.kill()
+        # app.logger.debug('Client killed')
 
 
 def flask_post_json():
@@ -97,23 +157,29 @@ def flask_post_json():
 @app.route("/entity/<entity>", methods=['POST','PUT'])
 def update(entity):
     '''update the entities via this interface'''
-    return None
+    data = flask_post_json()
+
+    for key, value in data.iteritems():
+        myWorld.update(entity, key, value)
+
+    return jsonify(myWorld.get(entity))
 
 @app.route("/world", methods=['POST','GET'])    
 def world():
     '''you should probably return the world here'''
-    return None
+    return jsonify(myWorld.world())
 
 @app.route("/entity/<entity>")    
 def get_entity(entity):
     '''This is the GET version of the entity interface, return a representation of the entity'''
-    return None
+    return jsonify(myWorld.get(entity))
 
 
 @app.route("/clear", methods=['POST','GET'])
 def clear():
     '''Clear the world out!'''
-    return None
+    myWorld.clear()
+    return jsonify(myWorld.world())
 
 
 

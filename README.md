@@ -28,6 +28,10 @@ From ws4py
 Copyright (c) 2011-2014, Sylvain Hellegouarch, Abram Hindle
 All rights reserved.
 
+Additions made for CMPUT 404 Winter 2017 by David Yee are similarly licensed
+under the Apache 2 license. Additional resources and their respective licenses
+are cited below.
+
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
@@ -57,3 +61,36 @@ Contributors
 
 * Mark Galloway
 * Abram Hindle
+* David Yee
+
+Sources
+=======
+
+* Flask JSONify (http://flask.pocoo.org/docs/0.12/api/#flask.json.jsonify)
+
+* Queue (https://docs.python.org/2/library/queue.html)
+
+* json dump (https://docs.python.org/2/library/json.html#json.dumps)
+
+* Spawning greenlets idea from 
+  http://sdiehl.github.io/gevent-tutorial/#spawning-greenlets
+
+* Dictionary iteration idea by
+  sberry (http://stackoverflow.com/users/141555/sberry) from
+  http://stackoverflow.com/a/3294899/2557554 and licensed under
+  CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+
+* JSON response idea by
+  Torben (http://stackoverflow.com/users/398844/torben) from
+  http://stackoverflow.com/a/8416963/2557554 and licensed under
+  CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+
+* Circle formula and code idea by
+  Philipp Jahoda (http://stackoverflow.com/users/1590502/philipp-jahoda) at
+  http://stackoverflow.com/a/25929952/2557554 and licensed under
+  CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+
+* Star drawing code based on code written by
+  markE (http://stackoverflow.com/users/411591/marke) at
+  http://stackoverflow.com/a/25840319/2557554 and licensed under
+  CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
