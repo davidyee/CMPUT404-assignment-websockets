@@ -94,3 +94,6 @@ Sources
   markE (http://stackoverflow.com/users/411591/marke) at
   http://stackoverflow.com/a/25840319/2557554 and licensed under
   CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+
+* In-class demonstration of a chat websocket application on 2017-03-17 by 
+  Professor Abram Hindle

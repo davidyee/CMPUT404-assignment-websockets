@@ -69,7 +69,7 @@ class Client:
         self.queue = queue.Queue()
 
     def put(self, item):
-        self.queue.put(item)
+        self.queue.put_nowait(item)
 
     def get(self):
         return self.queue.get()
@@ -106,6 +106,8 @@ def read_ws(ws,client):
             # Update the world for each item sent
             for item in data:
                 myWorld.set(item, data[item])
+        else:
+            break
     # app.logger.debug('Done reading!')
 
 @sockets.route('/subscribe')
